@@ -11,7 +11,7 @@ namespace :bijo_image_tweets do
       config.consumer_secret = Rails.application.credentials.twitter[:consumer_secret]
     end
 
-    since_id = RawTweet.last.present? ? RawTweet.last.tweet_id : -1;
+    since_id = RawTweet.last.present? ? RawTweet.last.tweet_id : -1
     option = {lang: 'ja', result_type: 'recent', since_id: since_id}
 
     tweets = client.search("#可愛かったらRT filter:images", option).take(MAX_TWEET)
@@ -29,5 +29,31 @@ namespace :bijo_image_tweets do
 
     puts "collected #{tweets.size} tweets"
     puts "*** ended *** task bijo_image_tweets collect at #{Time.now}"
+  end
+
+  desc "import bijo images from raw_tweets to DB"
+  task import: :environment do
+    puts "*** started *** task bijo_image_tweets import at #{Time.now}"
+
+    since_id = BijoImage.last.present? ? BijoImage.last.tweet_id : -1
+
+    tweets = RawTweet.where("tweet_id > #{since_id}")
+
+    tweets.each do |tweet|
+      t_obj = Marshal.load(tweet.raw_tweet_dumped.download)
+      t_id = t_obj.id
+      media = t_obj.media
+      media.each do |m|
+        BijoImage.create(
+          tweet_id: t_id,
+          width: m.sizes[:medium].w,
+          height: m.sizes[:medium].h,
+          url: m.media_url
+        )
+      end
+    end
+
+    puts "imported images from #{tweets.size} tweets"
+    puts "*** ended *** task bijo_image_tweets import at #{Time.now}"
   end
 end
