@@ -11,7 +11,11 @@ namespace :bijo_image_tweets do
       config.consumer_secret = Rails.application.credentials.twitter[:consumer_secret]
     end
 
-    since_id = RawTweet.last.present? ? RawTweet.last.tweet_id : -1
+    if RawTweet.all.size == 0 then
+      since_id = -1
+    else
+      since_id = RawTweet.order('tweet_id desc').first.tweet_id
+    end
     option = {lang: 'ja', result_type: 'recent', since_id: since_id}
 
     tweets = client.search("#可愛かったらRT filter:images", option).take(MAX_TWEET)
@@ -35,7 +39,11 @@ namespace :bijo_image_tweets do
   task import: :environment do
     puts "*** started *** task bijo_image_tweets import at #{Time.now}"
 
-    since_id = BijoImage.last.present? ? BijoImage.last.tweet_id : -1
+    if BijoImage.all.size == 0 then
+      since_id = -1
+    else
+      since_id = BijoImage.order('tweet_id desc').first.tweet_id
+    end
 
     tweets = RawTweet.where("tweet_id > #{since_id}")
 
